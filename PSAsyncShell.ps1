@@ -1,4 +1,4 @@
-#================================#
+﻿#================================#
 #   PSAsyncShell by @JoelGMSec   #
 #      https://darkbyte.net      #
 #================================#
@@ -187,3 +187,4 @@ $out = R64Encoder -t "[+] Sending MultiPart Data.." }}
 
 if ($out) { $writer.WriteLine($out) }
 $writer.Close() ; $tcpConnection.Close()}}
+
