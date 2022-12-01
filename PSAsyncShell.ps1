@@ -97,7 +97,7 @@ elseif ($Multi -eq "True") { $command = R64Encoder -t "[+] MultiPart Data OK!" }
 else { do { $path = $path.replace("`n","").replace("`r","")
 Write-Host -NoNewline "[PSAsyncShell] $path> " -ForegroundColor Blue ; $command = $Host.UI.ReadLine()
 if ($command -like "session") { $command = '$clientdata | Format-Table -AutoSize' }
-if ($command -like "pwd") { if (!$path) { $Start = "True" }}
+if ($command -like "pwd") { if (!$path) { $Start = "True" ; Write-Host }}
 
 if ($command -like "upload*") { $upload = "True" ; $upfile = $command.split()[2]
 if ($command -notlike "*$remoteslash*") { $command = "upload " + $command.split()[1] + " $path" + $remoteslash + $upfile }
