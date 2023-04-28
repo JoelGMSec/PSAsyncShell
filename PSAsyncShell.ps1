@@ -34,8 +34,8 @@ Write-Host ; Write-Host " Usage: " -ForegroundColor Yellow -NoNewLine ; Write-Ho
 Write-Host "          Listen for a new connection from the client" -ForegroundColor Green
 Write-Host ; Write-Host "        .\PSAsyncShell.ps1 -c server_ip server_port" -ForegroundColor Blue 
 Write-Host "          Connect the client to a PSAsyncShell server" -ForegroundColor Green
-Write-Host ; Write-Host " Warning: " -ForegroundColor Red -NoNewLine  ; Write-Host "All info betwen parts will be sent unencrypted"
-Write-Host "          Download & Upload functions don't use MultiPart"
+Write-Host ; Write-Host " Warning: " -ForegroundColor Red -NoNewLine  ; Write-Host "All data will be sent unencrypted"
+Write-Host "          Upload function doesn't use MultiPart"
 Write-Host }
 
 # Errors
