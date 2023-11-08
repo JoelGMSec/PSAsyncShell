@@ -52,7 +52,7 @@ $Alias1 = "Invoke" ; $Alias2 = "Express"
 Set-Alias sh -value "$Alias1-$Alias2`ion"
 if ($args -like "*-debug") { $debug = "True" }
 if ($OSVersion -like "*Win*"){ $localslash = "\" } else { $localslash = "/" } 
-$symbols = '.........".$.}.{.>.<.*.%.;.:./.\.(.).@.~.=.].[.!.?.^.&.#.|.........'
+$symbols = '..........$.}.{.>.<.*.%.;.:./.(.).@.~.=.].[.!.?.^.&.#.|.........'
 
 # Functions
 function WaitforDownload {
